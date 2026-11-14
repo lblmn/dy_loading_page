@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10141b">
+<title>LinkLab · 短链二维码工作台</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<!-- ============ 登录视图 ============ -->
+<div id="loginView" class="login-wrap">
+  <main class="login">
+    <div class="brand"><span class="js-brand-name">LinkLab</span><span class="tag js-brand-tag">工作台</span></div>
+    <h1>账号登录</h1>
+    <p>请输入管理员分配的账号。所有数据都存在本机 SQLite，不会连接任何外部平台。</p>
+    <label class="field"><span>用户名</span><input id="username" autocomplete="username"></label>
+    <label class="field"><span>密码</span><input id="password" type="password" autocomplete="current-password"></label>
+    <button class="primary" id="loginBtn">登录</button>
+    <div class="error" id="loginError"></div>
+    <div class="hint" id="loginHint">请输入管理员分配的账号。首次部署的初始密码由服务端在启动时生成。</div>
+  </main>
+</div>
+
+<!-- ============ 主工作台 ============ -->
+<div id="appView" hidden>
+  <header class="topbar">
+    <div class="brand"><span class="js-brand-name">LinkLab</span><span class="tag js-brand-tag">工作台</span></div>
+    <div class="status">
+      <span id="expiry"></span><span id="who"></span>
+      <a href="/admin" id="adminLink" hidden>后台管理</a>
+      <button id="logoutBtn">退出</button>
+    </div>
+  </header>
+
+  <section class="workspace">
+    <!-- 左栏：单条入口 -->
+    <div class="builder" id="builder">
+      <div class="eyebrow">入口队列</div>
+      <h1>创建短链跳转入口</h1>
+      <p class="lead">设置第一个目标 ID，并添加用户继续浏览时希望出现的后续 ID。</p>
+      <div class="edit-banner" id="editBanner">正在编辑入口，保存后原链接保持不变。</div>
+
+      <label class="field"><span>名称</span><input id="name" placeholder="例如：活动入口"></label>
+      <label class="field"><span>落地类型</span>
+        <select id="platform">
+          <option value="douyin">抖音</option>
+          <option value="lite">抖音极速版</option>
+        </select>
+      </label>
+      <div class="field grid-2">
+        <label><span>自定义短码（可选，留空随机）</span><input id="alias" placeholder="3-32 位字母数字_-"></label>
+        <label><span>有效天数（可选，留空永久）</span><input id="expiresDays" type="number" min="1" placeholder="30"></label>
+      </div>
+
+      <div id="idOnlyBox">
+        <div class="field"><span>顺序设置</span>
+          <label class="check"><input id="randomOrder" type="checkbox"> 完全随机（整条 ID 队列每次打开重新洗牌，含第 1 个）</label>
+        </div>
+        <div class="field deep-hint" id="deepHint" hidden>视频深链把整条 ID 队列拼进 gids（含第 1 个 ID），第 1 个同时作为 item_id；落地页以点击按钮拉起为主。</div>
+        <label class="field"><span>第 1 个目标 ID、分享文案</span><input id="target" placeholder="可直接粘贴含数字的整段文案"></label>
+
+        <div class="followers">
+          <label class="field"><span>第 2 个 ID</span><input class="follower" placeholder="链接或 ID"></label>
+          <label class="field"><span>第 3 个 ID</span><input class="follower" placeholder="链接或 ID"></label>
+          <label class="field"><span>第 4 个 ID</span><input class="follower" placeholder="链接或 ID"></label>
+          <label class="field"><span>第 5 个 ID</span><input class="follower" placeholder="链接或 ID"></label>
+          <label class="field bulk-field"><span>更多 ID（每行一个，可滚动浏览）</span><textarea id="bulkFollowers" rows="8" placeholder="每行粘贴一个链接、分享文案或数字 ID"></textarea></label>
+        </div>
+      </div>
+
+      <label class="field" id="targetUrlField" hidden><span>目标网页地址</span><input id="targetUrl" placeholder="https://your-site.example.com/landing"></label>
+      <label class="field" id="appLinkField" hidden><span>应用链接（须在服务端白名单内）</span><input id="appLink" placeholder="https://yourapp.example.com/open"></label>
+      <label class="field" id="liveField" hidden><span>房间 ID / 直播链接</span><input id="liveRoom" placeholder="room_id 或含数字的整段文案"></label>
+
+      <button class="primary" id="createBtn">生成链接和二维码</button>
+      <div class="message" id="message"></div>
+      <div class="result" id="result" hidden>
+        <div class="result-row"><input id="resultUrl" readonly><button class="copy" id="copyBtn">复制</button></div>
+        <div id="qrcode" class="qr"></div>
+      </div>
+    </div>
+
+    <!-- 中栏：批量创建 + 手机预览卡 -->
+    <div class="preview">
+      <div style="width:100%">
+        <div class="eyebrow">批量创建</div>
+        <h2>每个 ID 生成一个链接</h2>
+        <p class="lead">每行输入一个 ID、分享文案或链接，名称按前缀自动编号。</p>
+        <label class="field"><span>名称前缀</span><input id="batchPrefix" placeholder="例如：1008"></label>
+        <label class="field"><span>落地类型</span>
+          <select id="batchPlatform">
+            <option value="douyin">抖音</option>
+            <option value="lite">抖音极速版</option>
+          </select>
+        </label>
+        <label class="field"><span>目标类型</span>
+          <select id="batchKind">
+            <option value="id">ID 队列</option>
+            <option value="url">网页地址（每行一个 URL）</option>
+            <option value="app">应用链接（每行一个，须在白名单内）</option>
+            <option value="video" class="deep-kind">视频深链（每行一个 ID）</option>
+            <option value="live" class="deep-kind">直播深链（每行一个房间号）</option>
+          </select>
+        </label>
+        <label class="field"><span>目标列表（每行一个）</span><textarea id="batchTargets" rows="14" placeholder="每行粘贴一个链接、分享文案或数字 ID"></textarea></label>
+        <button class="primary" id="batchBtn">批量生成链接</button>
+        <div class="message" id="batchMessage"></div>
+        <textarea id="batchResults" rows="8" readonly hidden aria-label="批量生成结果"></textarea>
+        <button class="tool" id="batchCopyBtn" hidden style="margin-top:8px">复制本批链接</button>
+      </div>
+      <div class="phone">
+        <div class="mark">L</div>
+        <h2>扫码后的落地页</h2>
+        <p>短码 → 查库 → 按目标类型展示 / 倒计时跳转 / 拉起 App。<br>拉起行为由服务端配置决定，可一键关闭。</p>
+        <button class="launch" id="previewLink">预览最近生成的落地页</button>
+      </div>
+    </div>
+
+    <!-- 右栏：房间入口 -->
+    <div class="live-panel" id="livePanel">
+      <div class="eyebrow">房间入口</div>
+      <h2>创建独立房间链接</h2>
+      <p class="lead">填写房间链接或 room_id，生成独立入口。房间结束后原房间可能失效。</p>
+      <label class="field"><span>名称</span><input id="liveName" placeholder="例如：测试房间"></label>
+      <label class="field"><span>落地类型</span>
+        <select id="livePlatform">
+          <option value="douyin">抖音</option>
+          <option value="lite">抖音极速版</option>
+        </select>
+      </label>
+      <label class="field"><span>房间链接或房间 ID</span><input id="liveInput" placeholder="房间链接或 room_id"></label>
+      <button class="primary" id="liveBtn">生成房间链接</button>
+      <button class="tool" id="cancelLiveBtn" hidden style="margin-top:8px">取消编辑</button>
+      <div class="message" id="liveMessage"></div>
+      <div id="liveResult" hidden>
+        <label class="field"><span>房间入口链接</span><input id="liveUrl" readonly></label>
+        <button class="tool" id="copyLiveBtn">复制链接</button>
+        <button class="tool" id="qrLiveBtn">显示二维码</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 入口管理 -->
+  <section class="collection" id="collection">
+    <div class="collection-head">
+      <div><div class="eyebrow">入口管理</div><h2>已创建入口</h2></div>
+      <div class="list-controls">
+        <input id="entrySearch" class="search" placeholder="搜索名称 / 目标 / 短码">
+        <select id="entrySort" class="search">
+          <option value="created_at">最新创建</option>
+          <option value="clicks">访问最多</option>
+          <option value="name">按名称</option>
+          <option value="last_click_at">最近访问</option>
+        </select>
+        <div class="count" id="count"></div>
+        <button class="tool" id="scopeBtn" hidden>显示所有人的作品</button>
+      </div>
+    </div>
+    <div class="bulk-tools">
+      <label><input type="checkbox" id="selectAll"> 全选当前页</label>
+      <button class="tool" id="bulkCopyBtn" hidden>批量复制</button>
+      <button class="tool" id="bulkZipBtn" hidden>导出二维码 ZIP</button>
+      <button class="tool danger" id="bulkDeleteBtn" hidden>批量删除</button>
+      <span id="bulkStatus" role="status"></span>
+    </div>
+    <div id="entries"></div>
+    <div class="pager" id="pager" hidden>
+      <button class="tool" id="prevPage">上一页</button>
+      <span id="pageInfo"></span>
+      <button class="tool" id="nextPage">下一页</button>
+    </div>
+  </section>
+
+</div>
+
+<dialog class="modal" id="qrModal"><div class="modal-box">
+  <div class="modal-head"><h3 id="modalTitle">入口二维码</h3><button class="close" id="modalClose" aria-label="关闭">×</button></div>
+  <div class="modal-qr" id="modalQr"></div>
+  <div class="modal-actions">
+    <button class="tool" id="modalCopyBtn">复制链接</button>
+    <button class="primary" id="modalSaveBtn">保存二维码</button>
+  </div>
+</div></dialog>
+
+<!-- ============ 落地视图：/?r=<code> 时与工作台共用同一份 HTML，只切换显示 ============ -->
+<div id="landingView" class="landing" hidden>
+  <main class="card">
+    <div class="eyebrow" id="ld-eyebrow">短链解析</div>
+    <h1 id="ld-title">正在解析…</h1>
+    <div class="kv" id="ld-kv"></div>
+    <div id="ld-action" hidden>
+      <p id="ld-actionText" class="lead"></p>
+      <div class="landing-actions">
+        <a class="launch" id="ld-launchBtn" href="#" hidden>立即打开</a>
+        <button class="tool" id="ld-copyBtn">复制链接</button>
+        <button class="tool" id="ld-stopBtn" hidden>取消自动跳转</button>
+      </div>
+      <p class="landing-note" id="ld-actionNote"></p>
+    </div>
+    <div class="note">
+      <h3>关于这个入口</h3>
+      <p id="ld-kindNote">—</p>
+      <p style="margin-bottom:0"><a href="/">← 返回工作台</a></p>
+    </div>
+  </main>
+</div>
+<div class="wechat-mask" id="ld-wechatMask" hidden>
+  <div class="wechat-box">
+    <h2>请在浏览器中打开</h2>
+    <p>内置浏览器会拦截 App 深链。点击右上角「···」→「在浏览器中打开」，再访问本链接即可。</p>
+    <div class="landing-actions">
+      <button class="tool" id="ld-wechatCopy">复制本页链接</button>
+      <button class="tool" id="ld-wechatTry">仍要尝试打开</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/qrcode.min.js"></script>
+<script src="/static/zip.js"></script>
+<script src="/static/landing.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

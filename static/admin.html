@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10141b">
+<title>后台管理 · LinkLab</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">LinkLab 后台管理<span class="tag">仅管理员</span></div>
+  <div class="status">
+    <span id="who"></span>
+    <a href="/">返回工作台</a>
+    <button id="logoutBtn">退出</button>
+  </div>
+</header>
+
+<main class="admin-main">
+  <div class="eyebrow">概览</div>
+  <h1 class="admin-title">系统概览</h1>
+  <div class="stats" id="stats"></div>
+
+  <div class="admin-columns">
+    <!-- 账号管理 -->
+    <section class="admin-card">
+      <div class="card-head">
+        <div><div class="eyebrow">账号管理</div><h2>账号列表</h2></div>
+        <input id="userSearch" class="search" placeholder="搜索用户名 / 角色">
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>有效期</th><th>入口</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+      <div class="divider"></div>
+      <div class="eyebrow">新建账号</div>
+      <div class="create-form">
+        <label class="field"><span>用户名</span><input id="newUser" placeholder="3-32 位字母数字下划线"></label>
+        <label class="field"><span>密码</span><input id="newPwd" type="password" placeholder="至少 8 位"></label>
+        <label class="field"><span>角色</span><select id="newRole"><option value="user">普通用户</option><option value="admin">管理员</option></select></label>
+        <label class="field"><span>有效天数（留空=永久）</span><input id="newDays" type="number" min="1" placeholder="30"></label>
+        <button class="primary" id="createUserBtn">创建账号</button>
+        <div class="message" id="userMessage"></div>
+      </div>
+    </section>
+
+    <!-- 全局入口 -->
+    <section class="admin-card">
+      <div class="card-head">
+        <div><div class="eyebrow">全局入口</div><h2>所有人的短链</h2></div>
+        <input id="linkSearch" class="search" placeholder="搜索名称 / 归属 / 短码">
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>名称</th><th>归属</th><th>类型</th><th>目标</th><th>访问</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+          <tbody id="linkRows"></tbody>
+        </table>
+      </div>
+      <div class="divider"></div>
+      <div class="eyebrow">入口分布</div>
+      <div id="ownerStats" class="owner-stats"></div>
+      <div class="divider"></div>
+      <div class="eyebrow">访问量 Top</div>
+      <div id="topLinks" class="owner-stats"></div>
+      <div class="divider"></div>
+      <div class="eyebrow">最近创建</div>
+      <div id="recentList" class="recent-list"></div>
+    </section>
+
+    <!-- 审计日志 -->
+    <section class="admin-card">
+      <div class="card-head">
+        <div><div class="eyebrow">审计日志</div><h2>最近操作记录</h2></div>
+        <button class="tool" id="refreshAuditBtn">刷新</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>时间</th><th>用户</th><th>动作</th><th>对象</th><th>结果</th><th>来源 IP</th></tr></thead>
+          <tbody id="auditRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 点击明细报表 -->
+    <section class="admin-card report-card">
+      <div class="card-head">
+        <div><div class="eyebrow">点击明细报表</div><h2>访问趋势与来源</h2></div>
+        <button class="tool" id="exportClicksBtn">导出 CSV</button>
+      </div>
+      <div class="report-filters">
+        <label class="field"><span>入口</span><select id="clickCode"><option value="">全部入口</option></select></label>
+        <label class="field"><span>起始日期</span><input id="clickFrom" type="date"></label>
+        <label class="field"><span>结束日期</span><input id="clickTo" type="date"></label>
+        <button class="primary" id="queryClicksBtn">查询</button>
+      </div>
+      <div class="report-grid">
+        <div><div class="eyebrow">按天趋势</div><div id="clickByDay"></div></div>
+        <div><div class="eyebrow">来源 / 渠道分布</div><div id="clickBySource"></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="eyebrow">最近明细（最多 1000 条）</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>时间</th><th>短码</th><th>来源</th><th>渠道参数</th><th>IP</th><th>UA</th></tr></thead>
+          <tbody id="clickRows"></tbody>
+        </table>
+      </div>
+      <div class="message" id="clickMessage"></div>
+    </section>
+  </div>
+
+  <div class="message" id="globalMessage" role="status"></div>
+</main>
+
+<!-- 编辑账号 -->
+<dialog class="modal" id="editModal"><div class="modal-box">
+  <div class="modal-head"><h3 id="editTitle">编辑账号</h3><button class="close" id="editCancel">×</button></div>
+  <label class="field"><span>角色</span><select id="editRole"><option value="user">普通用户</option><option value="admin">管理员</option></select></label>
+  <label class="field"><span>有效天数（留空=保持原值，填 0 = 永久）</span><input id="editDays" type="number" min="0"></label>
+  <label class="field check"><input id="editEnabled" type="checkbox"> 启用该账号（取消即禁用，已有会话立即失效）</label>
+  <div class="modal-actions"><button class="tool" id="editCancel2">取消</button><button class="primary" id="editSave">保存</button></div>
+  <div class="message" id="editMessage"></div>
+</div></dialog>
+
+<!-- 重置密码 -->
+<dialog class="modal" id="pwdModal"><div class="modal-box">
+  <div class="modal-head"><h3 id="pwdTitle">重置密码</h3><button class="close" id="pwdCancel">×</button></div>
+  <label class="field"><span>新密码（至少 8 位）</span><input id="pwdInput" type="password"></label>
+  <p class="lead">保存后该账号的所有旧会话会被清除，需要重新登录。</p>
+  <div class="modal-actions"><button class="tool" id="pwdCancel2">取消</button><button class="primary" id="pwdSave">保存</button></div>
+  <div class="message" id="pwdMessage"></div>
+</div></dialog>
+
+<script src="/static/admin.js"></script>
+</body>
+</html>

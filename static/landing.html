@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10141b">
+<title>短链落地页 · LinkLab</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="landing">
+  <main class="card">
+    <div class="eyebrow" id="eyebrow">短链解析</div>
+    <h1 id="title">正在解析…</h1>
+    <div class="kv" id="kv"></div>
+
+    <div id="action" hidden>
+      <p id="actionText" class="lead"></p>
+      <div class="landing-actions">
+        <a class="launch" id="launchBtn" href="#" hidden>打开目标视频</a>
+        <button class="tool" id="copyBtn">复制链接</button>
+        <button class="tool" id="stopBtn" hidden>取消自动跳转</button>
+      </div>
+      <p class="landing-note" id="actionNote"></p>
+    </div>
+
+    <div class="note">
+      <h3>关于这个入口</h3>
+      <p id="kindNote">—</p>
+      <p style="margin-bottom:0"><a href="/">← 返回工作台</a></p>
+    </div>
+  </main>
+</div>
+<div class="wechat-mask" id="wechatMask" hidden>
+  <div class="wechat-box">
+    <h2>请在浏览器中打开</h2>
+    <p>内置浏览器会拦截 App 深链。点击右上角「···」→「在浏览器中打开」，再访问本链接即可。</p>
+    <div class="landing-actions">
+      <button class="tool" id="wechatCopy">复制本页链接</button>
+      <button class="tool" id="wechatTry">仍要尝试打开</button>
+    </div>
+  </div>
+</div>
+<script src="/static/landing.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runtime data
+linklab.db
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+config.env
+
+# IDE
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+logs/
+*.log

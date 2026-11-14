@@ -1,0 +1,25 @@
+# systemd 单元：部署到 /etc/systemd/system/linklab.service
+#   sudo useradd -r -s /usr/sbin/nologin linklab
+#   sudo mkdir -p /opt/linklab && sudo cp -r server.py static .env /opt/linklab/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now linklab
+# 首次启动的随机管理员密码只打印一次，用 journalctl -u linklab 查看。
+[Unit]
+Description=LinkLab short link / QR code service
+After=network.target
+
+[Service]
+Type=simple
+User=linklab
+Group=linklab
+WorkingDirectory=/opt/linklab
+EnvironmentFile=/opt/linklab/.env
+ExecStart=/usr/bin/python3 /opt/linklab/server.py
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/linklab/data
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,23 @@
+# 使用：在项目根目录准备 .env（参考 config.example.env），然后
+#   docker compose -f deploy/docker-compose.yml up -d --build
+# 只监听 127.0.0.1:8787，对外由宿主机 Nginx 反代并终止 HTTPS。
+services:
+  linklab:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: linklab:1.2
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      LINKLAB_HOST: 0.0.0.0
+      LINKLAB_PORT: "8787"
+      LINKLAB_DB: /data/linklab.db
+      LINKLAB_SECURE_COOKIE: "1"
+    volumes:
+      - linklab-data:/data
+    ports:
+      - "127.0.0.1:8787:8787"
+
+volumes:
+  linklab-data:
