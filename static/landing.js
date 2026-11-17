@@ -28,10 +28,17 @@ const KIND_TEXT = { id: 'ID 队列', url: '网页地址', app: '应用链接', r
 
 let timer = null, launchTimer = null, deepLink = '';
 
-/* 兼容两套容器的 id：优先取工作台内嵌视图的 ld- 前缀，再退回独立页原 id */
+/* 兼容两套容器的 id：优先取工作台内嵌视图的 ld- 前缀，再退回独立页原 id。
+ * 极简落地页只有图标 / 标题 / 说明 / 按钮，其余节点缺失时返回一个游离节点
+ * 承接写入，避免同一份脚本在两套容器里因找不到元素而中断。 */
+const detached = document.createElement('div');
+
 function q(id) {
-  return document.querySelector('#ld-' + id) || document.querySelector('#' + id);
+  return document.querySelector('#ld-' + id) || document.querySelector('#' + id) || detached;
 }
+
+/* 没有元信息容器 = 极简落地页，不渲染短码、队列、说明等额外内容 */
+const MINIMAL = !document.querySelector('#ld-kv') && !document.querySelector('#kv');
 
 function row(k, v) {
   const a = document.createElement('span'), b = document.createElement('span');
@@ -124,24 +131,27 @@ async function main() {
   const d = await res.json();
   if (!res.ok) throw new Error(d.error || '解析失败');
 
-  q('title').textContent = d.name;
-  row('短码', code);
-  row('目标类型', KIND_TEXT[d.kind] || 'ID 队列');
-  if (d.platform === 'lite' || d.platform === 'douyin') {
-    row('协议前缀', d.platform === 'lite' ? '抖音极速版 snssdk2329' : '抖音 snssdk1128');
+  /* 极简落地页只保留设计稿里的四块内容，不展示任何入口元信息 */
+  if (!MINIMAL) {
+    q('title').textContent = d.name;
+    row('短码', code);
+    row('目标类型', KIND_TEXT[d.kind] || 'ID 队列');
+    if (d.platform === 'lite' || d.platform === 'douyin') {
+      row('协议前缀', d.platform === 'lite' ? '抖音极速版 snssdk2329' : '抖音 snssdk1128');
+    }
+    if (d.roomId) row('房间 ID', d.roomId);
+    else if (d.kind === 'id' || d.kind === 'video') {
+      row('目标 ID', d.targetId);
+      row('后续 ID 数', (d.gids || []).length);
+    }
+    row('创建时间', new Date(d.createdAt).toLocaleString('zh-CN', { hour12: false }));
+    row('短链地址', d.url);
+    renderIdList(d.displayIds || [], !!d.randomOrder);
+    if (Object.keys(d.utmParams || {}).length) {
+      row('渠道参数', Object.entries(d.utmParams).map(([k, v]) => `${k}=${v}`).join(' · '));
+    }
+    await applyBrand();
   }
-  if (d.roomId) row('房间 ID', d.roomId);
-  else if (d.kind === 'id' || d.kind === 'video') {
-    row('目标 ID', d.targetId);
-    row('后续 ID 数', (d.gids || []).length);
-  }
-  row('创建时间', new Date(d.createdAt).toLocaleString('zh-CN', { hour12: false }));
-  row('短链地址', d.url);
-  renderIdList(d.displayIds || [], !!d.randomOrder);
-  if (Object.keys(d.utmParams || {}).length) {
-    row('渠道参数', Object.entries(d.utmParams).map(([k, v]) => `${k}=${v}`).join(' · '));
-  }
-  await applyBrand();
 
   const action = q('action');
   const btn = q('launchBtn');
@@ -222,6 +232,20 @@ async function main() {
         ? '服务端未开启 LINKLAB_DEEP_LINKS，深链类型已退化为「仅展示配置」。'
         : '该入口是一组 ID 队列，仅用于展示配置；完整队列已在上方列出。');
   }
+
+  /* 极简落地页：绿色图标取入口名称的首字（汉字取首字，英文取首字母并大写） */
+  if (MINIMAL) {
+    const ch = (Array.from((d.name || '').trim())[0] || '').toUpperCase();
+    if (ch) q('logo').textContent = ch;
+  }
+
+  /* 极简落地页：说明文字随目标类型微调，没有可打开目标时提示不可用 */
+  if (MINIMAL) {
+    const sub = q('subtitle');
+    if (btn.hidden) sub.textContent = '该入口暂无可打开的目标，请联系管理员。';
+    else if (d.kind === 'live') sub.textContent = '点击下面按钮打开抖音目标直播。';
+    else if (d.kind === 'url' || d.kind === 'app') sub.textContent = '点击下面按钮打开目标页面。';
+  }
 }
 
 if (LANDING_MODE) {
@@ -240,6 +264,7 @@ if (LANDING_MODE) {
   };
   main().catch((e) => {
     q('title').textContent = '链接不存在或已失效';
+    q('subtitle').textContent = e.message;   // 极简落地页：说明位改为失效原因
     setNote(e.message);
   });
 }
